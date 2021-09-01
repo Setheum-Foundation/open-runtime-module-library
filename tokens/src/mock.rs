@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ChangeMembers, ContainsLengthBound, GenesisBuild, SaturatingCurrencyToVote, SortedMembers},
+	traits::{ChangeMembers, ContainsLengthBound, SaturatingCurrencyToVote, SortedMembers},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
@@ -212,7 +212,6 @@ impl Contains<AccountId> for MockDustRemovalWhitelist {
 
 parameter_type_with_key! {
 	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
-		#[allow(clippy::match_ref_pats)] // false positive
 		match currency_id {
 			&BTC => 1,
 			&DOT => 2,
@@ -287,7 +286,9 @@ impl ExtBuilder {
 		.unwrap();
 
 		if self.treasury_genesis {
-			GenesisBuild::<Runtime>::assimilate_storage(&pallet_treasury::GenesisConfig::default(), &mut t).unwrap();
+			pallet_treasury::GenesisConfig::default()
+				.assimilate_storage::<Runtime, _>(&mut t)
+				.unwrap();
 
 			pallet_elections_phragmen::GenesisConfig::<Runtime> {
 				members: vec![(TREASURY_ACCOUNT, 10)],

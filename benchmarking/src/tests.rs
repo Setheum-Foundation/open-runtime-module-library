@@ -118,14 +118,14 @@ runtime_benchmarks! {
 	set_value {
 		let b in 1 .. 1000;
 		let caller = account::<AccountId>("caller", 0, 0);
-	}: _ (RawOrigin::Signed(caller), b)
+	}: _ (RawOrigin::Signed(caller), b.into())
 	verify {
 		assert_eq!(Pallet::value(), Some(b));
 	}
 
 	other_name {
 		let b in 1 .. 1000;
-	}: dummy (RawOrigin::None, b)
+	}: dummy (RawOrigin::None, b.into())
 
 	sort_vector {
 		let x in 1 .. 10000;
@@ -134,7 +134,7 @@ runtime_benchmarks! {
 			m.push(i);
 		}
 	}: {
-		m.sort_unstable();
+		m.sort();
 	} verify {
 		ensure!(m[0] == 0, "You forgot to sort!")
 	}
@@ -142,7 +142,7 @@ runtime_benchmarks! {
 	bad_origin {
 		let b in 1 .. 1000;
 		let caller = account::<AccountId>("caller", 0, 0);
-	}: dummy (RawOrigin::Signed(caller), b)
+	}: dummy (RawOrigin::Signed(caller), b.into())
 
 	bad_verify {
 		let x in 1 .. 10000;
@@ -243,10 +243,10 @@ fn benchmarks_macro_verify_works() {
 #[test]
 fn benchmarks_generate_unit_tests() {
 	new_test_ext().execute_with(|| {
-		assert_ok!(Benchmark::test_benchmark_set_value());
-		assert_ok!(Benchmark::test_benchmark_other_name());
-		assert_ok!(Benchmark::test_benchmark_sort_vector());
-		assert_err!(Benchmark::test_benchmark_bad_origin(), "Bad origin");
-		assert_err!(Benchmark::test_benchmark_bad_verify(), "You forgot to sort!");
+		assert_ok!(test_benchmark_set_value());
+		assert_ok!(test_benchmark_other_name());
+		assert_ok!(test_benchmark_sort_vector());
+		assert_err!(test_benchmark_bad_origin(), "Bad origin");
+		assert_err!(test_benchmark_bad_verify(), "You forgot to sort!");
 	});
 }
