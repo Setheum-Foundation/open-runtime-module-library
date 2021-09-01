@@ -3,7 +3,7 @@ use crate as orml_xtokens;
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{Everything, Get},
+	traits::{All, Get},
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
 use frame_system::EnsureRoot;
@@ -22,7 +22,7 @@ use xcm::v0::{
 	Junction::{self, Parachain, Parent},
 	MultiAsset,
 	MultiLocation::{self, X1, X2},
-	NetworkId,
+	NetworkId, Xcm,
 };
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, EnsureXcmOrigin, FixedWeightBounds, LocationInverter,
@@ -145,7 +145,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 >;
 
 pub type XcmRouter = ParachainXcmRouter<ParachainInfo>;
-pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
+pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<All<MultiLocation>>);
 
 /// A trader who believes all tokens are created equal to "weight" of any chain,
 /// which is not true, but good enough to mock the fee payment of XCM execution.
@@ -231,12 +231,11 @@ impl pallet_xcm::Config for Runtime {
 	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type XcmRouter = XcmRouter;
 	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-	type XcmExecuteFilter = Everything;
+	type XcmExecuteFilter = All<(MultiLocation, Xcm<Call>)>;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = ();
-	type XcmReserveTransferFilter = Everything;
+	type XcmReserveTransferFilter = All<(MultiLocation, Vec<MultiAsset>)>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call>;
-	type LocationInverter = LocationInverter<Ancestry>;
 }
 
 pub struct AccountIdToMultiLocation;

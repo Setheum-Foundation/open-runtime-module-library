@@ -40,19 +40,24 @@
 
 pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 
-use codec::MaxEncodedLen;
 use frame_support::{
 	ensure, log,
 	pallet_prelude::*,
 	traits::{
 		tokens::{fungible, fungibles, DepositConsequence, WithdrawConsequence},
 		BalanceStatus as Status, Contains, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
-		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
-		WithdrawReasons,
+		LockableCurrency as PalletLockableCurrency, MaxEncodedLen, ReservableCurrency as PalletReservableCurrency,
+		SignedImbalance, WithdrawReasons,
 	},
 	transactional, BoundedVec,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
+use orml_traits::{
+	arithmetic::{self, Signed},
+	currency::TransferAll,
+	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
+	MultiReservableCurrency, OnDust,
+};
 use sp_runtime::{
 	traits::{
 		AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member, Saturating,
@@ -65,13 +70,6 @@ use sp_std::{
 	marker,
 	prelude::*,
 	vec::Vec,
-};
-
-use orml_traits::{
-	arithmetic::{self, Signed},
-	currency::TransferAll,
-	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
-	MultiReservableCurrency, OnDust,
 };
 
 mod imbalances;
@@ -318,7 +316,7 @@ pub mod module {
 				.iter()
 				.for_each(|(account_id, currency_id, initial_balance)| {
 					assert!(
-						*initial_balance >= T::ExistentialDeposits::get(currency_id),
+						*initial_balance >= T::ExistentialDeposits::get(&currency_id),
 						"the balance of any account should always be more than existential deposit.",
 					);
 					Pallet::<T>::mutate_account(account_id, *currency_id, |account_data, _| {
@@ -1435,7 +1433,7 @@ where
 		value: Self::Balance,
 		existence_requirement: ExistenceRequirement,
 	) -> DispatchResult {
-		Pallet::<T>::do_transfer(GetCurrencyId::get(), source, dest, value, existence_requirement)
+		Pallet::<T>::do_transfer(GetCurrencyId::get(), &source, &dest, value, existence_requirement)
 	}
 
 	fn slash(who: &T::AccountId, value: Self::Balance) -> (Self::NegativeImbalance, Self::Balance) {

@@ -21,12 +21,11 @@
 #![allow(clippy::string_lit_as_bytes)]
 #![allow(clippy::unused_unit)]
 
-use codec::MaxEncodedLen;
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
 	storage,
-	traits::{EnsureOrigin, Get},
+	traits::{EnsureOrigin, Get, MaxEncodedLen},
 	BoundedVec,
 };
 use frame_system::pallet_prelude::*;
