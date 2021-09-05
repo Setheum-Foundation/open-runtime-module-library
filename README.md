@@ -8,12 +8,8 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 
 ## Runtime Modules Overview
 
-- [orml-auction](./auction)
-	- Auction module that implements `Auction` trait.
 - [orml-currencies](./currencies)
 	- Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module.
-- [orml-gradually-update](./gradually-update)
-	- Provides way to adjust numeric parameter gradually over a period of time.
 - [orml-nft](./nft)
  	- Non-fungible-token module provides basic functions to create and manager NFT(non fungible token) such as `create_class`, `transfer`, `mint`, `burn`, `destroy_class`.
 - [orml-oracle](./oracle)
@@ -24,14 +20,6 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Shared traits including `BasicCurrency`, `MultiCurrency`, `Auction` and more.
 - [orml-utilities](./utilities)
 	- Various utilities including `OrderSet`.
-- [orml-vesting](./vesting)
-	- Provides scheduled balance locking mechanism, in a *graded vesting* way.
-- [orml-xcm-support](./xcm-support)
-	- Provides traits, types, and implementations to support XCM integration.
-- [orml-xtokens](./xtokens)
-	- Provides way to do cross-chain assets transfer.
-	- [Step-by-Step guide](https://github.com/open-web3-stack/open-runtime-module-library/wiki/xtokens) to make XCM cross-chain fungible asset transfer available on your parachain
-
 ## Example
 
 Checkout [orml-workshop](https://github.com/xlc/orml-workshop) for example usage.
