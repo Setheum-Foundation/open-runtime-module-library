@@ -26,8 +26,8 @@ sp-std = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-
 sp-io = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-08", version = '4.0.0-dev', default-features = false }
 sp-runtime-interface = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-08", version = '4.0.0-dev', default-features = false }
 sp-state-machine = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-08", version = '4.0.0-dev', default-features = false, optional = true }
-sc-executor = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-08", version = '4.0.0-dev', default-features = false, features = ["wasmtime"], optional = true }
-sc-executor-common = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-08", version = '4.0.0-dev', optional = true }
+sc-executor = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-08", version = '0.10.0-dev', default-features = false, features = ["wasmtime"], optional = true }
+sc-executor-common = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-08", version = '0.10.0-dev', optional = true }
 sc-client-db = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-08", version = '4.0.0-dev', default-features = false, features = ["with-kvdb-rocksdb"], optional = true }
 sp-maybe-compressed-blob = { git = "https://github.com/paritytech/substrate",  tag = "monthly-2021-08", version = '4.0.0-dev', default-features = false, optional = true }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", tag = "monthly-2021-08", version = '4.0.0-dev', default-features = false }
