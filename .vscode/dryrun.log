@@ -1,35 +1,4 @@
-
-  $ make <target...> [options]
-
-  Options:
-    --help             Show this help output
-    --version          Show package version
-    --debug            Enable extended log output
-
-  Targets:
-    check              Run target check
-    check-tests        Run target check-tests
-    test               Run target test
-    GITHOOK            Run target GITHOOK 
-    githooks           Run target githooks
-    init               Run target init
-    format             Run target format
-    Cargo.toml         Run target Cargo.toml
-    dev-format         Run target dev-format
-    dev-format-check   Run target dev-format-check
-    dev-check          Run target dev-check
-    dev-check-tests    Run target dev-check-tests
-    dev-test           Run target dev-test
-    benchmark-all      Run target benchmark-all
-
-  Templates:
-    ava                Generate ava setup (ava)
-    cli                Generate cli setup (minimist, tabtab, ge...)
-    default            Generate default setup (babel-cli, babel-plu...)
-    eslint             Generate eslint setup (eslint, eslint-confi...)
-    livereactload      Generate livereactload setup (babel-plugin-react-t...)
-    mocha              Generate mocha setup (mocha)
-    simple             Generate simple setup
-
-
+make --dry-run --always-make --keep-going --print-directory
+env:  
+node: No such file or directory
  
