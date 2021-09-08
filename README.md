@@ -20,6 +20,9 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Shared traits including `BasicCurrency`, `MultiCurrency`, `Auction` and more.
 - [orml-utilities](./utilities)
 	- Various utilities including `OrderSet`.
+- [orml-vesting](./vesting)
+	- Provides scheduled balance locking mechanism, in a *graded vesting* way.
+
 ## Example
 
 Checkout [orml-workshop](https://github.com/xlc/orml-workshop) for example usage.

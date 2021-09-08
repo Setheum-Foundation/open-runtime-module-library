@@ -5,7 +5,7 @@
 use super::*;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ChangeMembers, ContainsLengthBound, SaturatingCurrencyToVote, SortedMembers},
+	traits::{ChangeMembers, ContainsLengthBound, SortedMembers},
 	PalletId,
 };
 use orml_traits::parameter_type_with_key;
@@ -28,7 +28,7 @@ pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 pub const CHARLIE: AccountId = AccountId32::new([2u8; 32]);
 pub const DAVE: AccountId = AccountId32::new([3u8; 32]);
-pub const TREASURY_ACCOUNT: AccountId = AccountId32::new([4u8; 32]);
+pub const ACEACCOUNT: AccountId = AccountId32::new([4u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 pub const ID_2: LockIdentifier = *b"2       ";
 pub const ID_3: LockIdentifier = *b"3       ";
@@ -174,35 +174,6 @@ impl ChangeMembers<AccountId> for TestChangeMembers {
 	}
 }
 
-parameter_types! {
-	pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
-	pub const CandidacyBond: u64 = 3;
-	pub const VotingBond: u64 = 2;
-	pub const DesiredMembers: u32 = 2;
-	pub const DesiredRunnersUp: u32 = 2;
-	pub const TermDuration: u64 = 5;
-	pub const VotingBondBase: u64 = 2;
-	pub const VotingBondFactor: u64 = 0;
-}
-
-impl pallet_elections_phragmen::Config for Runtime {
-	type PalletId = ElectionsPhragmenPalletId;
-	type Event = Event;
-	type Currency = CurrencyAdapter<Runtime, GetTokenId>;
-	type CurrencyToVote = SaturatingCurrencyToVote;
-	type ChangeMembers = TestChangeMembers;
-	type InitializeMembers = ();
-	type CandidacyBond = CandidacyBond;
-	type VotingBondBase = VotingBondBase;
-	type VotingBondFactor = VotingBondFactor;
-	type TermDuration = TermDuration;
-	type DesiredMembers = DesiredMembers;
-	type DesiredRunnersUp = DesiredRunnersUp;
-	type LoserCandidate = ();
-	type KickedMember = ();
-	type WeightInfo = ();
-}
-
 pub struct MockDustRemovalWhitelist;
 impl Contains<AccountId> for MockDustRemovalWhitelist {
 	fn contains(a: &AccountId) -> bool {
@@ -250,7 +221,6 @@ construct_runtime!(
 		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
 		Tokens: tokens::{Pallet, Storage, Event<T>, Config<T>},
 		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
-		ElectionsPhragmen: pallet_elections_phragmen::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -289,14 +259,8 @@ impl ExtBuilder {
 			pallet_treasury::GenesisConfig::default()
 				.assimilate_storage::<Runtime, _>(&mut t)
 				.unwrap();
-
-			pallet_elections_phragmen::GenesisConfig::<Runtime> {
-				members: vec![(TREASURY_ACCOUNT, 10)],
-			}
-			.assimilate_storage(&mut t)
-			.unwrap();
 		}
-
+		
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(1));
 		ext
