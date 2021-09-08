@@ -2,19 +2,16 @@ cargo-features = ["resolver"]
 
 [workspace]
 members = [
-	"auction",
 	"authority",
 	"bencher",
 	"benchmarking",
 	"currencies",
-	"gradually-update",
 	"oracle",
 	"oracle/rpc",
 	"oracle/rpc/runtime-api",
 	"tokens",
 	"traits",
 	"utilities",
-	"vesting",
 	"rewards",
 	"nft",
 	"build-script-utils",

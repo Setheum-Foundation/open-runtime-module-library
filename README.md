@@ -8,8 +8,6 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 
 ## Runtime Modules Overview
 
-- [orml-auction](./auction)
-	- Auction module that implements `Auction` trait.
 - [orml-currencies](./currencies)
 	- Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module.
 - [orml-nft](./nft)
@@ -24,6 +22,7 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Various utilities including `OrderSet`.
 - [orml-vesting](./vesting)
 	- Provides scheduled balance locking mechanism, in a *graded vesting* way.
+
 ## Example
 
 Checkout [orml-workshop](https://github.com/xlc/orml-workshop) for example usage.
