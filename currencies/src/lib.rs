@@ -49,8 +49,8 @@ use frame_support::{
 };
 use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use orml_traits::{
+	account::MergeAccount,
 	arithmetic::{Signed, SimpleArithmetic},
-	currency::TransferAll,
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
@@ -65,16 +65,23 @@ use sp_std::{
 	marker, result,
 };
 
+mod default_weight;
 mod mock;
 mod tests;
-mod weights;
 
 pub use module::*;
-pub use weights::WeightInfo;
 
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
+
+	pub trait WeightInfo {
+		fn transfer_non_native_currency() -> Weight;
+		fn transfer_native_currency() -> Weight;
+		fn update_balance_non_native_currency() -> Weight;
+		fn update_balance_native_currency_creating() -> Weight;
+		fn update_balance_native_currency_killing() -> Weight;
+	}
 
 	pub(crate) type BalanceOf<T> =
 		<<T as Config>::MultiCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -87,7 +94,7 @@ pub mod module {
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		type MultiCurrency: TransferAll<Self::AccountId>
+		type MultiCurrency: MergeAccount<Self::AccountId>
 			+ MultiCurrencyExtended<Self::AccountId>
 			+ MultiLockableCurrency<Self::AccountId>
 			+ MultiReservableCurrency<Self::AccountId>;
@@ -113,20 +120,19 @@ pub mod module {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
-	#[pallet::metadata(CurrencyIdOf<T> = "Currency", T::AccountId = "AccountId", BalanceOf<T> = "Balance", AmountOf<T> = "Amount")]
 	pub enum Event<T: Config> {
-		/// Currency transfer success. \[currency_id, from, to, amount\]
+		/// Currency transfer success. [currency_id, from, to, amount]
 		Transferred(CurrencyIdOf<T>, T::AccountId, T::AccountId, BalanceOf<T>),
-		/// Update balance success. \[currency_id, who, amount\]
+		/// Update balance success. [currency_id, who, amount]
 		BalanceUpdated(CurrencyIdOf<T>, T::AccountId, AmountOf<T>),
-		/// Deposit success. \[currency_id, who, amount\]
+		/// Deposit success. [currency_id, who, amount]
 		Deposited(CurrencyIdOf<T>, T::AccountId, BalanceOf<T>),
-		/// Withdraw success. \[currency_id, who, amount\]
+		/// Withdraw success. [currency_id, who, amount]
 		Withdrawn(CurrencyIdOf<T>, T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(_);
+	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
@@ -143,11 +149,11 @@ pub mod module {
 			dest: <T::Lookup as StaticLookup>::Source,
 			currency_id: CurrencyIdOf<T>,
 			#[pallet::compact] amount: BalanceOf<T>,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, &from, &to, amount)?;
-			Ok(())
+			Ok(().into())
 		}
 
 		/// Transfer some native currency to another account.
@@ -159,13 +165,13 @@ pub mod module {
 			origin: OriginFor<T>,
 			dest: <T::Lookup as StaticLookup>::Source,
 			#[pallet::compact] amount: BalanceOf<T>,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let to = T::Lookup::lookup(dest)?;
 			T::NativeCurrency::transfer(&from, &to, amount)?;
 
 			Self::deposit_event(Event::Transferred(T::GetNativeCurrencyId::get(), from, to, amount));
-			Ok(())
+			Ok(().into())
 		}
 
 		/// update amount of account `who` under `currency_id`.
@@ -177,11 +183,11 @@ pub mod module {
 			who: <T::Lookup as StaticLookup>::Source,
 			currency_id: CurrencyIdOf<T>,
 			amount: AmountOf<T>,
-		) -> DispatchResult {
+		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			let dest = T::Lookup::lookup(who)?;
 			<Self as MultiCurrencyExtended<T::AccountId>>::update_balance(currency_id, &dest, amount)?;
-			Ok(())
+			Ok(().into())
 		}
 	}
 }
@@ -679,11 +685,14 @@ where
 	}
 }
 
-impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
-	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
+impl<T: Config> MergeAccount<T::AccountId> for Pallet<T> {
+	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		with_transaction_result(|| {
 			// transfer non-native free to dest
-			T::MultiCurrency::transfer_all(source, dest)?;
+			T::MultiCurrency::merge_account(source, dest)?;
+
+			// unreserve all reserved currency
+			T::NativeCurrency::unreserve(source, T::NativeCurrency::reserved_balance(source));
 
 			// transfer all free to dest
 			T::NativeCurrency::transfer(source, dest, T::NativeCurrency::free_balance(source))
