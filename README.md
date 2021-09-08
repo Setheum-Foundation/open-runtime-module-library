@@ -12,8 +12,6 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Auction module that implements `Auction` trait.
 - [orml-currencies](./currencies)
 	- Provide `MultiCurrency` implementation using `pallet-balances` and `orml-tokens` module.
-- [orml-gradually-update](./gradually-update)
-	- Provides way to adjust numeric parameter gradually over a period of time.
 - [orml-nft](./nft)
  	- Non-fungible-token module provides basic functions to create and manager NFT(non fungible token) such as `create_class`, `transfer`, `mint`, `burn`, `destroy_class`.
 - [orml-oracle](./oracle)

@@ -1,4 +1,4 @@
-//! Mocks for the gradually-update module.
+//! Mocks for the NFT module.
 
 #![cfg(test)]
 
