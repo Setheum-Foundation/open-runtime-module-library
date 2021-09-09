@@ -1,4 +1,4 @@
-//! Mocks for the NFT module.
+//! Mocks for the gradually-update module.
 
 #![cfg(test)]
 
@@ -37,15 +37,9 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = frame_support::traits::AllowAll;
+	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
-	type OnSetCode = ();
-}
-
-parameter_types! {
-	pub const MaxClassMetadata: u32 = 1;
-	pub const MaxTokenMetadata: u32 = 1;
 }
 
 impl Config for Runtime {
@@ -53,8 +47,6 @@ impl Config for Runtime {
 	type TokenId = u64;
 	type ClassData = ();
 	type TokenData = ();
-	type MaxClassMetadata = MaxClassMetadata;
-	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -66,8 +58,8 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-		NonFungibleTokenModule: nft::{Pallet, Storage, Config<T>},
+		System: frame_system::{Module, Call, Storage, Config, Event<T>},
+		NonFungibleTokenModule: nft::{Module, Storage, Config<T>},
 	}
 );
 

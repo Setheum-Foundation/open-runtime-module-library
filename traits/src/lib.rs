@@ -1,8 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use impl_trait_for_tuples::impl_for_tuples;
-use sp_runtime::{DispatchResult, RuntimeDebug};
+use sp_runtime::RuntimeDebug;
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	prelude::Vec,
@@ -22,6 +21,7 @@ pub use nft::NFT;
 pub use price::{DefaultPriceProvider, PriceProvider};
 pub use rewards::RewardHandler;
 
+pub mod account;
 pub mod arithmetic;
 pub mod auction;
 pub mod currency;
@@ -64,19 +64,7 @@ pub struct TimestampedValue<Value: Ord + PartialOrd, Moment> {
 	pub timestamp: Moment,
 }
 
-#[impl_for_tuples(30)]
+#[impl_trait_for_tuples::impl_for_tuples(30)]
 pub trait Happened<T> {
 	fn happened(t: &T);
-}
-
-pub trait Handler<T> {
-	fn handle(t: &T) -> DispatchResult;
-}
-
-#[impl_for_tuples(30)]
-impl<T> Handler<T> for Tuple {
-	fn handle(t: &T) -> DispatchResult {
-		for_tuples!( #( Tuple::handle(t); )* );
-		Ok(())
-	}
 }

@@ -21,10 +21,11 @@ fn should_feed_values_from_member() {
 				.pays_fee,
 			Pays::No
 		);
-		System::assert_last_event(Event::ModuleOracle(crate::Event::NewFeedData(
-			1,
-			vec![(50, 1000), (51, 900), (52, 800)],
-		)));
+
+		let new_feed_data_event = Event::oracle(crate::Event::NewFeedData(1, vec![(50, 1000), (51, 900), (52, 800)]));
+		assert!(System::events()
+			.iter()
+			.any(|record| record.event == new_feed_data_event));
 
 		assert_eq!(
 			ModuleOracle::raw_values(&account_id, &50),
@@ -237,7 +238,6 @@ fn get_all_values_should_work() {
 #[test]
 fn change_member_should_work() {
 	new_test_ext().execute_with(|| {
-		OracleMembers::set(vec![2, 3, 4]);
 		<ModuleOracle as ChangeMembers<AccountId>>::change_members_sorted(&[4], &[1], &[2, 3, 4]);
 		assert_noop!(
 			ModuleOracle::feed_values(Origin::signed(1), vec![(50, 1000)]),

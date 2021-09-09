@@ -3,13 +3,13 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, parameter_types, PalletId};
+use frame_support::{construct_runtime, parameter_types};
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, IdentityLookup},
-	AccountId32,
+	AccountId32, ModuleId,
 };
 
 use crate as currencies;
@@ -39,10 +39,9 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = frame_support::traits::AllowAll;
+	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
-	type OnSetCode = ();
 }
 
 type CurrencyId = u32;
@@ -57,22 +56,19 @@ impl pallet_balances::Config for Runtime {
 	type DustRemoval = ();
 	type Event = Event;
 	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = frame_system::Pallet<Runtime>;
+	type AccountStore = frame_system::Module<Runtime>;
 	type MaxLocks = ();
-	type MaxReserves = ();
-	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = ();
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+	pub ExistentialDeposits: |currency_id: CurrencyId| -> Balance {
 		Default::default()
 	};
 }
 
 parameter_types! {
-	pub DustAccount: AccountId = PalletId(*b"orml/dst").into_account();
-	pub MaxLocks: u32 = 100_000;
+	pub DustAccount: AccountId = ModuleId(*b"orml/dst").into_account();
 }
 
 impl orml_tokens::Config for Runtime {
@@ -83,8 +79,6 @@ impl orml_tokens::Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, DustAccount>;
-	type MaxLocks = MaxLocks;
-	type DustRemovalWhitelist = ();
 }
 
 pub const NATIVE_CURRENCY_ID: CurrencyId = 1;
@@ -113,10 +107,10 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
-		Currencies: currencies::{Pallet, Call, Event<T>},
-		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-		PalletBalances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		System: frame_system::{Module, Call, Storage, Config, Event<T>},
+		Currencies: currencies::{Module, Call, Event<T>},
+		Tokens: orml_tokens::{Module, Storage, Event<T>, Config<T>},
+		PalletBalances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 	}
 );
 
@@ -126,18 +120,20 @@ pub const EVA: AccountId = AccountId32::new([5u8; 32]);
 pub const ID_1: LockIdentifier = *b"1       ";
 
 pub struct ExtBuilder {
-	balances: Vec<(AccountId, CurrencyId, Balance)>,
+	endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>,
 }
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
-		Self { balances: vec![] }
+		Self {
+			endowed_accounts: vec![],
+		}
 	}
 }
 
 impl ExtBuilder {
-	pub fn balances(mut self, balances: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
-		self.balances = balances;
+	pub fn balances(mut self, endowed_accounts: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
+		self.endowed_accounts = endowed_accounts;
 		self
 	}
 
@@ -157,7 +153,7 @@ impl ExtBuilder {
 
 		pallet_balances::GenesisConfig::<Runtime> {
 			balances: self
-				.balances
+				.endowed_accounts
 				.clone()
 				.into_iter()
 				.filter(|(_, currency_id, _)| *currency_id == NATIVE_CURRENCY_ID)
@@ -168,8 +164,8 @@ impl ExtBuilder {
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
-			balances: self
-				.balances
+			endowed_accounts: self
+				.endowed_accounts
 				.into_iter()
 				.filter(|(_, currency_id, _)| *currency_id != NATIVE_CURRENCY_ID)
 				.collect::<Vec<_>>(),

@@ -4,7 +4,11 @@
 
 use super::*;
 use codec::{Decode, Encode};
-use frame_support::{parameter_types, weights::Weight};
+use frame_support::{
+	parameter_types,
+	traits::{OnFinalize, OnInitialize},
+	weights::Weight,
+};
 use frame_system::{ensure_root, ensure_signed, EnsureRoot};
 use sp_core::H256;
 use sp_runtime::{
@@ -44,10 +48,9 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = frame_support::traits::AllowAll;
+	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
-	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -121,7 +124,7 @@ impl AsOriginId<Origin, OriginCaller> for MockAsOriginId {
 	}
 	fn check_dispatch_from(&self, origin: Origin) -> DispatchResult {
 		ensure_root(origin.clone()).or_else(|_| {
-			if let OriginCaller::Authority(ref sign) = origin.caller() {
+			if let OriginCaller::authority(ref sign) = origin.caller() {
 				if sign.origin == Box::new(Origin::root().caller().clone()) {
 					return Ok(());
 				} else {
@@ -159,9 +162,9 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Event<T>},
-		Authority: authority::{Pallet, Call, Origin<T>, Event<T>},
-		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
+		System: frame_system::{Module, Call, Config, Event<T>},
+		Authority: authority::{Module, Call, Origin<T>, Event<T>},
+		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
 	}
 );
 

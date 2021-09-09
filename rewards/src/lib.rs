@@ -1,14 +1,15 @@
 #![allow(clippy::unused_unit)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod default_weight;
 mod mock;
 mod tests;
 
-use codec::{FullCodec, HasCompact, MaxEncodedLen};
+use codec::{FullCodec, HasCompact};
 use frame_support::pallet_prelude::*;
 use orml_traits::RewardHandler;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, Saturating, Zero},
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, Zero},
 	FixedPointNumber, FixedPointOperand, FixedU128, RuntimeDebug,
 };
 use sp_std::{
@@ -17,7 +18,7 @@ use sp_std::{
 };
 
 /// The Reward Pool Info.
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, Default, MaxEncodedLen)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, Default)]
 pub struct PoolInfo<Share: HasCompact, Balance: HasCompact> {
 	/// Total shares amount
 	#[codec(compact)]
@@ -35,6 +36,10 @@ pub use module::*;
 #[frame_support::pallet]
 pub mod module {
 	use super::*;
+
+	pub trait WeightInfo {
+		fn on_initialize(c: u32) -> Weight;
+	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -59,10 +64,19 @@ pub mod module {
 			+ FixedPointOperand;
 
 		/// The reward pool ID type.
-		type PoolId: Parameter + Member + Clone + FullCodec;
+		type PoolId: Parameter + Member + Copy + FullCodec;
 
 		/// The `RewardHandler`
-		type Handler: RewardHandler<Self::AccountId, Balance = Self::Balance, PoolId = Self::PoolId>;
+		type Handler: RewardHandler<
+			Self::AccountId,
+			Self::BlockNumber,
+			Share = Self::Share,
+			Balance = Self::Balance,
+			PoolId = Self::PoolId,
+		>;
+
+		/// Weight information for extrinsics in this module.
+		type WeightInfo: WeightInfo;
 	}
 
 	/// Stores reward pool info.
@@ -78,37 +92,37 @@ pub mod module {
 		StorageDoubleMap<_, Twox64Concat, T::PoolId, Twox64Concat, T::AccountId, (T::Share, T::Balance), ValueQuery>;
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(_);
+	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_initialize(now: T::BlockNumber) -> Weight {
+			let mut count = 0;
+			T::Handler::accumulate_reward(now, |pool, reward_to_accumulate| {
+				if !reward_to_accumulate.is_zero() {
+					count += 1;
+					Pools::<T>::mutate(pool, |pool_info| {
+						pool_info.total_rewards = pool_info.total_rewards.saturating_add(reward_to_accumulate)
+					});
+				}
+			});
+			T::WeightInfo::on_initialize(count)
+		}
+	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {}
 }
 
 impl<T: Config> Pallet<T> {
-	pub fn accumulate_reward(pool: &T::PoolId, reward_increment: T::Balance) {
-		if !reward_increment.is_zero() {
-			Pools::<T>::mutate(pool, |pool_info| {
-				pool_info.total_rewards = pool_info.total_rewards.saturating_add(reward_increment)
-			});
-		}
-	}
-
-	pub fn add_share(who: &T::AccountId, pool: &T::PoolId, add_amount: T::Share) {
+	pub fn add_share(who: &T::AccountId, pool: T::PoolId, add_amount: T::Share) {
 		if add_amount.is_zero() {
 			return;
 		}
 
 		Pools::<T>::mutate(pool, |pool_info| {
-			let reward_inflation = if pool_info.total_shares.is_zero() {
-				Zero::zero()
-			} else {
-				let proportion = FixedU128::checked_from_rational(add_amount, pool_info.total_shares)
-					.unwrap_or_else(FixedU128::max_value);
-				proportion.saturating_mul_int(pool_info.total_rewards)
-			};
+			let proportion = FixedU128::checked_from_rational(add_amount, pool_info.total_shares).unwrap_or_default();
+			let reward_inflation = proportion.saturating_mul_int(pool_info.total_rewards);
 
 			pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
 			pool_info.total_rewards = pool_info.total_rewards.saturating_add(reward_inflation);
@@ -121,7 +135,7 @@ impl<T: Config> Pallet<T> {
 		});
 	}
 
-	pub fn remove_share(who: &T::AccountId, pool: &T::PoolId, remove_amount: T::Share) {
+	pub fn remove_share(who: &T::AccountId, pool: T::PoolId, remove_amount: T::Share) {
 		if remove_amount.is_zero() {
 			return;
 		}
@@ -137,8 +151,7 @@ impl<T: Config> Pallet<T> {
 			}
 
 			Pools::<T>::mutate(pool, |pool_info| {
-				let proportion = FixedU128::checked_from_rational(remove_amount, *share)
-					.expect("share is gte remove_amount and not zero which checked before; qed");
+				let proportion = FixedU128::checked_from_rational(remove_amount, *share).unwrap_or_default();
 				let withdrawn_rewards_to_remove = proportion.saturating_mul_int(*withdrawn_rewards);
 
 				pool_info.total_shares = pool_info.total_shares.saturating_sub(remove_amount);
@@ -154,7 +167,7 @@ impl<T: Config> Pallet<T> {
 		});
 	}
 
-	pub fn set_share(who: &T::AccountId, pool: &T::PoolId, new_share: T::Share) {
+	pub fn set_share(who: &T::AccountId, pool: T::PoolId, new_share: T::Share) {
 		let (share, _) = Self::share_and_withdrawn_reward(pool, who);
 
 		if new_share > share {
@@ -164,7 +177,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn claim_rewards(who: &T::AccountId, pool: &T::PoolId) {
+	pub fn claim_rewards(who: &T::AccountId, pool: T::PoolId) {
 		ShareAndWithdrawnReward::<T>::mutate(pool, who, |(share, withdrawn_rewards)| {
 			if share.is_zero() {
 				return;
