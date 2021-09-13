@@ -38,6 +38,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 type Balance = u64;
@@ -52,7 +53,7 @@ impl pallet_balances::Config for Runtime {
 	type DustRemoval = ();
 	type Event = Event;
 	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = frame_system::Module<Runtime>;
+	type AccountStore = frame_system::Pallet<Runtime>;
 	type MaxLocks = ();
 	type WeightInfo = ();
 }
@@ -75,12 +76,17 @@ impl EnsureOrigin<Origin> for EnsureAliceOrBob {
 	}
 }
 
+parameter_types! {
+	pub const MaxVestingSchedule: u32 = 2;
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = PalletBalances;
 	type MinVestedTransfer = MinVestedTransfer;
 	type VestedTransferOrigin = EnsureAliceOrBob;
 	type WeightInfo = ();
+	type MaxVestingSchedules = MaxVestingSchedule;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -92,9 +98,9 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Module, Call, Storage, Config, Event<T>},
-		Vesting: vesting::{Module, Storage, Call, Event<T>, Config<T>},
-		PalletBalances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+		Vesting: vesting::{Pallet, Storage, Call, Event<T>, Config<T>},
+		PalletBalances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 	}
 );
 

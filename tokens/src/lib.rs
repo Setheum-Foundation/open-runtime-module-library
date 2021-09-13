@@ -40,19 +40,19 @@
 pub use crate::imbalances::{NegativeImbalance, PositiveImbalance};
 
 use frame_support::{
-	ensure,
+	ensure, log,
 	pallet_prelude::*,
 	traits::{
 		BalanceStatus as Status, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
-		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency, SignedImbalance,
-		WithdrawReasons,
+		LockableCurrency as PalletLockableCurrency, MaxEncodedLen, ReservableCurrency as PalletReservableCurrency,
+		SignedImbalance, WithdrawReasons,
 	},
-	transactional,
+	transactional, BoundedVec, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{
-	account::MergeAccount,
 	arithmetic::{self, Signed},
+	currency::TransferAll,
 	BalanceStatus, GetByKey, LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency,
 	MultiReservableCurrency, OnDust,
 };
@@ -61,7 +61,7 @@ use sp_runtime::{
 		AccountIdConversion, AtLeast32BitUnsigned, Bounded, CheckedAdd, CheckedSub, MaybeSerializeDeserialize, Member,
 		Saturating, StaticLookup, Zero,
 	},
-	DispatchError, DispatchResult, ModuleId, RuntimeDebug,
+	ArithmeticError, DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{
 	convert::{Infallible, TryFrom, TryInto},
@@ -70,10 +70,12 @@ use sp_std::{
 	vec::Vec,
 };
 
-mod default_weight;
 mod imbalances;
 mod mock;
 mod tests;
+mod weights;
+
+pub use weights::WeightInfo;
 
 pub struct TransferDust<T, GetAccountId>(marker::PhantomData<(T, GetAccountId)>);
 impl<T, GetAccountId> OnDust<T::AccountId, T::CurrencyId, T::Balance> for TransferDust<T, GetAccountId>
@@ -99,7 +101,7 @@ impl<T: Config> OnDust<T::AccountId, T::CurrencyId, T::Balance> for BurnDust<T> 
 
 /// A single lock on a balance. There can be many of these on an account and
 /// they "overlap", so the same balance is frozen by multiple locks.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, MaxEncodedLen, RuntimeDebug)]
 pub struct BalanceLock<Balance> {
 	/// An identifier for this lock. Only one lock may be in existence for
 	/// each identifier.
@@ -110,7 +112,7 @@ pub struct BalanceLock<Balance> {
 }
 
 /// balance information for an account.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Default, MaxEncodedLen, RuntimeDebug)]
 pub struct AccountData<Balance> {
 	/// Non-reserved part of the balance. There may still be restrictions on
 	/// this, but it is the total pool what may in principle be transferred,
@@ -150,17 +152,18 @@ pub use module::*;
 pub mod module {
 	use super::*;
 
-	pub trait WeightInfo {
-		fn transfer() -> Weight;
-		fn transfer_all() -> Weight;
-	}
-
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		/// The balance type
-		type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
+		type Balance: Parameter
+			+ Member
+			+ AtLeast32BitUnsigned
+			+ Default
+			+ Copy
+			+ MaybeSerializeDeserialize
+			+ MaxEncodedLen;
 
 		/// The amount type, should be signed version of `Balance`
 		type Amount: Signed
@@ -184,22 +187,20 @@ pub mod module {
 
 		/// Handler to burn or transfer account's dust
 		type OnDust: OnDust<Self::AccountId, Self::CurrencyId, Self::Balance>;
+
+		type MaxLocks: Get<u32>;
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The balance is too low
 		BalanceTooLow,
-		/// This operation will cause balance to overflow
-		BalanceOverflow,
-		/// This operation will cause total issuance to overflow
-		TotalIssuanceOverflow,
 		/// Cannot convert Amount into Balance type
 		AmountIntoBalanceFailed,
 		/// Failed because liquidity restrictions due to locking
 		LiquidityRestrictions,
-		/// Account still has active reserved
-		StillHasActiveReserved,
+		/// Failed because the maximum locks was exceeded
+		MaxLocksExceeded,
 	}
 
 	#[pallet::event]
@@ -228,7 +229,7 @@ pub mod module {
 		T::AccountId,
 		Twox64Concat,
 		T::CurrencyId,
-		Vec<BalanceLock<T::Balance>>,
+		BoundedVec<BalanceLock<T::Balance>, T::MaxLocks>,
 		ValueQuery,
 	>;
 
@@ -298,7 +299,7 @@ pub mod module {
 	}
 
 	#[pallet::pallet]
-	pub struct Pallet<T>(PhantomData<T>);
+	pub struct Pallet<T>(_);
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
@@ -348,7 +349,7 @@ pub mod module {
 impl<T: Config> Pallet<T> {
 	/// Check whether account_id is a module account
 	pub(crate) fn is_module_account_id(account_id: &T::AccountId) -> bool {
-		ModuleId::try_from_account(account_id).is_some()
+		PalletId::try_from_account(account_id).is_some()
 	}
 
 	pub(crate) fn try_mutate_account<R, E>(
@@ -381,10 +382,10 @@ impl<T: Config> Pallet<T> {
 				// If existed before, decrease account provider.
 				// Ignore the result, because if it failed means that these’s remain consumers,
 				// and the account storage in frame_system shouldn't be repeaded.
-				let _ = frame_system::Module::<T>::dec_providers(who);
+				let _ = frame_system::Pallet::<T>::dec_providers(who);
 			} else if !existed && exists {
 				// if new, increase account provider
-				frame_system::Module::<T>::inc_providers(who);
+				frame_system::Pallet::<T>::inc_providers(who);
 			}
 
 			if let Some(dust_amount) = handle_dust {
@@ -431,7 +432,11 @@ impl<T: Config> Pallet<T> {
 
 	/// Update the account entry for `who` under `currency_id`, given the
 	/// locks.
-	pub(crate) fn update_locks(currency_id: T::CurrencyId, who: &T::AccountId, locks: &[BalanceLock<T::Balance>]) {
+	pub(crate) fn update_locks(
+		currency_id: T::CurrencyId,
+		who: &T::AccountId,
+		locks: &[BalanceLock<T::Balance>],
+	) -> DispatchResult {
 		// update account data
 		Self::mutate_account(who, currency_id, |account, _| {
 			account.frozen = Zero::zero();
@@ -446,23 +451,27 @@ impl<T: Config> Pallet<T> {
 			<Locks<T>>::remove(who, currency_id);
 			if existed {
 				// decrease account ref count when destruct lock
-				frame_system::Module::<T>::dec_consumers(who);
+				frame_system::Pallet::<T>::dec_consumers(who);
 			}
 		} else {
-			<Locks<T>>::insert(who, currency_id, locks);
+			let bounded_locks: BoundedVec<BalanceLock<T::Balance>, T::MaxLocks> =
+				locks.to_vec().try_into().map_err(|_| Error::<T>::MaxLocksExceeded)?;
+			<Locks<T>>::insert(who, currency_id, bounded_locks);
 			if !existed {
 				// increase account ref count when initialize lock
-				if frame_system::Module::<T>::inc_consumers(who).is_err() {
+				if frame_system::Pallet::<T>::inc_consumers(who).is_err() {
 					// No providers for the locks. This is impossible under normal circumstances
 					// since the funds that are under the lock will themselves be stored in the
 					// account and therefore will need a reference.
-					frame_support::debug::warn!(
+					log::warn!(
 						"Warning: Attempt to introduce lock consumer reference, yet no providers. \
 						This is unexpected but should be safe."
 					);
 				}
 			}
 		}
+
+		Ok(())
 	}
 }
 
@@ -521,7 +530,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		let from_balance = Self::free_balance(currency_id, from);
 		let to_balance = Self::free_balance(currency_id, to)
 			.checked_add(&amount)
-			.ok_or(Error::<T>::BalanceOverflow)?;
+			.ok_or(ArithmeticError::Overflow)?;
 		// Cannot underflow because ensure_can_withdraw check
 		Self::set_free_balance(currency_id, from, from_balance - amount);
 		Self::set_free_balance(currency_id, to, to_balance);
@@ -538,9 +547,7 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 		}
 
 		TotalIssuance::<T>::try_mutate(currency_id, |total_issuance| -> DispatchResult {
-			*total_issuance = total_issuance
-				.checked_add(&amount)
-				.ok_or(Error::<T>::TotalIssuanceOverflow)?;
+			*total_issuance = total_issuance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 			Self::set_free_balance(currency_id, who, Self::free_balance(currency_id, who) + amount);
 
@@ -662,8 +669,7 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 		if let Some(lock) = new_lock {
 			locks.push(lock)
 		}
-		Self::update_locks(currency_id, who, &locks[..]);
-		Ok(())
+		Self::update_locks(currency_id, who, &locks[..])
 	}
 
 	// Extend a lock on the balance of `who` under `currency_id`.
@@ -694,15 +700,14 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 		if let Some(lock) = new_lock {
 			locks.push(lock)
 		}
-		Self::update_locks(currency_id, who, &locks[..]);
-		Ok(())
+		Self::update_locks(currency_id, who, &locks[..])
 	}
 
 	fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) -> DispatchResult {
 		let mut locks = Self::locks(who, currency_id);
 		locks.retain(|lock| lock.id != lock_id);
-		Self::update_locks(currency_id, who, &locks[..]);
-		Ok(())
+		let locks_vec = locks.to_vec();
+		Self::update_locks(currency_id, who, &locks_vec[..])
 	}
 }
 
@@ -927,7 +932,7 @@ where
 		let currency_id = GetCurrencyId::get();
 		let new_total = Pallet::<T>::free_balance(currency_id, who)
 			.checked_add(&value)
-			.ok_or(Error::<T>::TotalIssuanceOverflow)?;
+			.ok_or(ArithmeticError::Overflow)?;
 		Pallet::<T>::set_free_balance(currency_id, who, new_total);
 
 		Ok(Self::PositiveImbalance::new(value))
@@ -1042,16 +1047,11 @@ where
 	}
 }
 
-impl<T: Config> MergeAccount<T::AccountId> for Pallet<T> {
+impl<T: Config> TransferAll<T::AccountId> for Pallet<T> {
 	#[transactional]
-	fn merge_account(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
+	fn transfer_all(source: &T::AccountId, dest: &T::AccountId) -> DispatchResult {
 		Accounts::<T>::iter_prefix(source).try_for_each(|(currency_id, account_data)| -> DispatchResult {
-			// ensure the account has no active reserved of non-native token
-			ensure!(account_data.reserved.is_zero(), Error::<T>::StillHasActiveReserved);
-
-			// transfer all free to recipient
-			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)?;
-			Ok(())
+			<Self as MultiCurrency<T::AccountId>>::transfer(currency_id, source, dest, account_data.free)
 		})
 	}
 }
