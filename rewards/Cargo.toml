@@ -4,23 +4,22 @@ description = "Store and manage shares and rewards"
 repository = "https://github.com/open-web3-stack/open-runtime-module-library/tree/master/rewards"
 license = "Apache-2.0"
 version = "0.4.1-dev"
-authors = ["Acala Developers"]
+authors = ["Setheum Labs"]
 edition = "2018"
 
 [dependencies]
-serde = { version = "1.0.111", optional = true }
+serde = { version = "1.0.124", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-sp-runtime = { version = "3.0.0", default-features = false }
-sp-io = { version = "3.0.0", default-features = false }
-sp-std = { version = "3.0.0", default-features = false }
-frame-support = { version = "3.0.0", default-features = false }
-frame-system = { version = "3.0.0", default-features = false }
+max-encoded-len = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.4", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.4", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.4", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.4", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.4", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.4", default-features = false }
 orml-traits = { path = "../traits", version = "0.4.1-dev", default-features = false }
 
-funty = { version = "=1.1.0", default-features = false } # https://github.com/bitvecto-rs/bitvec/issues/105
-
 [dev-dependencies]
-sp-core = "3.0.0"
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.4" }
 
 [features]
 default = ["std"]
@@ -34,3 +33,4 @@ std = [
 	"frame-system/std",
 	"orml-traits/std",
 ]
+try-runtime = ["frame-support/try-runtime"]

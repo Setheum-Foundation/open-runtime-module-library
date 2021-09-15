@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: [ubuntu-latest]
+    runs-on: [self-hosted, linux]
     env:
       SCCACHE_CACHE_SIZE: "50G"
     steps:
@@ -25,3 +25,4 @@ jobs:
       run: make Cargo.toml
     - name: Cargo unleash check
       run: cargo unleash check
+

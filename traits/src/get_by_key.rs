@@ -14,7 +14,7 @@ pub trait GetByKey<Key, Value> {
 /// parameter_type_with_key! {
 ///     pub Rates: |currency_id: CurrencyId| -> u32 {
 ///         match currency_id {
-///             CurrencyId::DOT => 1,
+///             CurrencyId::DNAR => 1,
 ///             CurrencyId::KSM => 2,
 ///             _ => 3,
 ///         }
