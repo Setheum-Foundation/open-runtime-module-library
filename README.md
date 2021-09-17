@@ -25,11 +25,6 @@ The Open Runtime Module Library (ORML) is a community maintained collection of S
 	- Various utilities including `OrderSet`.
 - [orml-vesting](./vesting)
 	- Provides scheduled balance locking mechanism, in a *graded vesting* way.
-- [orml-xcm-support](./xcm-support)
-	- Provides traits, types, and implementations to support XCM integration.
-- [orml-xtokens](./xtokens)
-	- Provides way to do cross-chain assets transfer.
-	- [Step-by-Step guide](https://github.com/open-web3-stack/open-runtime-module-library/wiki/xtokens) to make XCM cross-chain fungible asset transfer available on your parachain
 
 ## Example
 

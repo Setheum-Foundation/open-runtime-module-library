@@ -29,7 +29,7 @@ sp-state-machine = { git = "https://github.com/Slixon-Technologies/substrate", b
 sc-executor = { git = "https://github.com/Slixon-Technologies/substrate", branch = "setheum-v0.9.5", default-features = false, features = ["wasmtime"], optional = true }
 sc-executor-common = { git = "https://github.com/Slixon-Technologies/substrate", branch = "setheum-v0.9.5", optional = true }
 sc-client-db = { git = "https://github.com/Slixon-Technologies/substrate", branch = "setheum-v0.9.5", default-features = false, features = ["with-kvdb-rocksdb"], optional = true }
-sp-maybe-compressed-blob = { git = "https://github.com/paritytech/substrate",  branch = "polkadot-v0.9.4", default-features = false, optional = true }
+sp-maybe-compressed-blob = { git = "https://github.com/Slixon-Technologies/substrate",  branch = "setheum-v0.9.5", default-features = false, optional = true }
 frame-benchmarking = { git = "https://github.com/Slixon-Technologies/substrate", branch = "setheum-v0.9.5", default-features = false }
 
 [features]
