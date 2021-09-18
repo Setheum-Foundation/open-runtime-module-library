@@ -538,23 +538,23 @@ fn compact_wasm_file(
 	)
 }
 
-fn compress_wasm(wasm_binary_path: &Path, compressed_binary_out_path: &Path) -> bool {
-	use sp_maybe_compressed_blob::CODE_BLOB_BOMB_LIMIT;
+// fn compress_wasm(wasm_binary_path: &Path, compressed_binary_out_path: &Path) -> bool {
+// 	use sp_maybe_compressed_blob::CODE_BLOB_BOMB_LIMIT;
 
-	let data = fs::read(wasm_binary_path).expect("Failed to read WASM binary");
-	if let Some(compressed) = sp_maybe_compressed_blob::compress(&data, CODE_BLOB_BOMB_LIMIT) {
-		fs::write(compressed_binary_out_path, &compressed[..]).expect("Failed to write WASM binary");
+// 	let data = fs::read(wasm_binary_path).expect("Failed to read WASM binary");
+// 	if let Some(compressed) = sp_maybe_compressed_blob::compress(&data, CODE_BLOB_BOMB_LIMIT) {
+// 		fs::write(compressed_binary_out_path, &compressed[..]).expect("Failed to write WASM binary");
 
-		true
-	} else {
-		println!(
-			"cargo:warning=Writing uncompressed wasm. Exceeded maximum size {}",
-			CODE_BLOB_BOMB_LIMIT,
-		);
+// 		true
+// 	} else {
+// 		println!(
+// 			"cargo:warning=Writing uncompressed wasm. Exceeded maximum size {}",
+// 			CODE_BLOB_BOMB_LIMIT,
+// 		);
 
-		false
-	}
-}
+// 		false
+// 	}
+// }
 
 /// Custom wrapper for a [`cargo_metadata::Package`] to store it in
 /// a `HashSet`.

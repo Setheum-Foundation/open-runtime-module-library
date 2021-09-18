@@ -44,7 +44,7 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		BalanceStatus as Status, Currency as PalletCurrency, ExistenceRequirement, Get, Imbalance,
-		LockableCurrency as PalletLockableCurrency, MaxEncodedLen, ReservableCurrency as PalletReservableCurrency,
+		LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency,
 		SignedImbalance, WithdrawReasons,
 	},
 	transactional, BoundedVec, PalletId,
@@ -101,7 +101,7 @@ impl<T: Config> OnDust<T::AccountId, T::CurrencyId, T::Balance> for BurnDust<T> 
 
 /// A single lock on a balance. There can be many of these on an account and
 /// they "overlap", so the same balance is frozen by multiple locks.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, MaxEncodedLen, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct BalanceLock<Balance> {
 	/// An identifier for this lock. Only one lock may be in existence for
 	/// each identifier.
@@ -112,7 +112,7 @@ pub struct BalanceLock<Balance> {
 }
 
 /// balance information for an account.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, Default, MaxEncodedLen, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, Default, RuntimeDebug)]
 pub struct AccountData<Balance> {
 	/// Non-reserved part of the balance. There may still be restrictions on
 	/// this, but it is the total pool what may in principle be transferred,
@@ -163,7 +163,6 @@ pub mod module {
 			+ Default
 			+ Copy
 			+ MaybeSerializeDeserialize
-			+ MaxEncodedLen;
 
 		/// The amount type, should be signed version of `Balance`
 		type Amount: Signed

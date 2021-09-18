@@ -5,7 +5,7 @@ mod mock;
 mod tests;
 
 use codec::{FullCodec, HasCompact};
-use frame_support::{pallet_prelude::*, traits::MaxEncodedLen};
+use frame_support::pallet_prelude::*;
 use orml_traits::RewardHandler;
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member, Saturating, Zero},
@@ -17,7 +17,7 @@ use sp_std::{
 };
 
 /// The Reward Pool Info.
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, Default, MaxEncodedLen)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, Default)]
 pub struct PoolInfo<Share: HasCompact, Balance: HasCompact> {
 	/// Total shares amount
 	#[codec(compact)]
